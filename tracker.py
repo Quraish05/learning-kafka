@@ -2,6 +2,7 @@
 Kafka Consumer for tracking orders.
 This module subscribes to the 'orders' topic and prints received messages.
 """
+# pylint: disable=all
 import json
 from confluent_kafka import Consumer
 

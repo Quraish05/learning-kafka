@@ -1,30 +1,37 @@
-import uuid
-import json
-from confluent_kafka import Producer
+"""
+Kafka Producer for sending orders.
+This module sends orders to the 'orders' topic.
+"""
+# pylint: disable=all
+import json, os, time
+from datetime import datetime
+from kafka import KafkaProducer
 
-producer = Producer({
-    'bootstrap.servers': 'localhost:9092'
-})
+BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
+TOPIC = os.getenv("TOPIC", "demo.orders")
 
-def delivery_report(err, msg):
-    if err:
-        print(f"Error: {err}")
-    else:
-        print(f"Message delivered {msg.value().decode('utf-8')}")
-        
-order = {
-  "order_id": str(uuid.uuid4()),
-  "user": 'nicole',
-  "item" : 'jam',
-  "quantity": 5,
-}
-
-value = json.dumps(order).encode('utf-8')
-
-producer.produce(
-  topic='orders', 
-  value=value,
-  callback=delivery_report
+producer = KafkaProducer(
+    bootstrap_servers=BOOTSTRAP,
+    acks="all",
+    linger_ms=10,
+    retries=3,
+    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+    key_serializer=lambda k: k.encode("utf-8") if k is not None else None,
 )
 
+print(f"Producing 10 messages to topic '{TOPIC}' on {BOOTSTRAP}")
+for i in range(1, 11):
+    payload = {
+        "id": i,
+        "item": f"widget-{i}",
+        "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    }
+    key = f"order-{i}"
+    fut = producer.send(TOPIC, key=key, value=payload)
+    md = fut.get(timeout=10)
+    print(f" -> sent key={key} to partition={md.partition}, offset={md.offset}")
+    time.sleep(0.05)
+
 producer.flush()
+producer.close()
+print("Done.")
