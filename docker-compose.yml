@@ -16,14 +16,65 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
 
     volumes:
       - kafka_kraft:/var/lib/kafka/data
-  
+    #  Observability 
+  otel-collector:
+    image: otel/opentelemetry-collector:0.113.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./scripts/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4318:4318"   # OTLP HTTP ingest
+    depends_on:
+      - jaeger
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+
+  #  Microservices 
+  orders-api:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+      TOPIC: "demo.orders"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+      ENV: "dev"
+    command: bash -lc "pip install -r requirements.txt && uvicorn src.services.orders_api:app --host 0.0.0.0 --port 8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - kafka
+      - otel-collector
+
+  orders-worker:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+      TOPIC: "demo.orders"
+      GROUP_ID: "orders-worker"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+      ENV: "dev"
+    command: bash -lc "pip install -r requirements.txt && python -m src.services.orders_worker"
+    depends_on:
+      - kafka
+      - otel-collector
+      
 volumes:
   kafka_kraft:
 
