@@ -16,13 +16,19 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
 
     volumes:
       - kafka_kraft:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     #  Observability 
   otel-collector:
     image: otel/opentelemetry-collector:0.113.0
@@ -38,8 +44,7 @@ services:
     image: jaegertracing/all-in-one:latest
     ports:
       - "16686:16686" # Jaeger UI
-      - "4317:4317"   # OTLP gRPC receiver
-      - "4318:4318"   # OTLP HTTP receiver
+      # Note: 4317 and 4318 are used internally by otel-collector, no need to expose to host
 
   #  Microservices 
   orders-api:
@@ -74,6 +79,52 @@ services:
     depends_on:
       - kafka
       - otel-collector
+      
+  connect:
+    image: confluentinc/cp-kafka-connect:7.8.3
+    container_name: connect
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      # Where Connect talks to Kafka (your existing brokers)
+      CONNECT_BOOTSTRAP_SERVERS: "kafka:9092"
+      
+      # Internal Connect topics (autocreated if allowed). RF=1 for single broker setup.
+      CONNECT_GROUP_ID: "connect-cluster"
+      CONNECT_CONFIG_STORAGE_TOPIC: "__connect-configs"
+      CONNECT_OFFSET_STORAGE_TOPIC: "__connect-offsets"
+      CONNECT_STATUS_STORAGE_TOPIC: "__connect-status"
+
+      # Use JSON for connector configs/status (no schemas).
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+
+      # REST interface for managing connectors
+      CONNECT_REST_ADVERTISED_HOST_NAME: "connect"
+      CONNECT_REST_PORT: "8083"
+
+      # Converters define how keys/values are serialized as they move through Connect
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      
+      # Where Connect looks for connector plugins. FileStream connectors added via plugins volume.
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components,/plugins"
+
+      # Relax for demos
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+
+    ports:
+      - "8083:8083"
+    volumes:
+      # Local data + connector JSONs available inside the container
+      - ./data:/data
+      - ./connect:/connect
+      # FileStream connector plugin
+      - ./plugins:/plugins
+    networks:
+      - default
       
 volumes:
   kafka_kraft:

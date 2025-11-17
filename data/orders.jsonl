@@ -1,0 +1,4 @@
+{"order_id": 1001, "user": "alice", "items": [{"sku": "pizza-margherita", "qty": 1}], "total": 399.0, "status": "PLACED", "ts": "2025-11-07T12:05:00Z"}
+{"order_id": 1002, "user": "bob", "items": [{"sku": "pasta-alfredo", "qty": 2}], "total": 520.0, "status": "PLACED", "ts": "2025-11-07T12:06:30Z"}
+{"order_id": 1003, "user": "charlie", "items": [{"sku": "garlic-bread", "qty": 3}], "total": 270.0, "status": "PLACED", "ts": "2025-11-07T12:07:10Z"}
+{"order_id":1004,"user":"dora","items":[{"sku":"tiramisu","qty":1}],"total":180.0,"status":"PLACED","ts":"2025-11-07T12:12:00Z"}

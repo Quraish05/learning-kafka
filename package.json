@@ -1,0 +1,20 @@
+{
+  "name": "python-kafka-proj",
+  "version": "1.0.0",
+  "description": "Kafka project with Python and JavaScript producers/consumers",
+  "main": "src/producers/fast_order_producer.js",
+  "scripts": {
+    "producer": "node src/producers/fast_order_producer.js"
+  },
+  "keywords": [
+    "kafka",
+    "producer",
+    "javascript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  }
+}
+
