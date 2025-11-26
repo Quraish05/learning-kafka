@@ -64,6 +64,23 @@ services:
     depends_on: [ kafka-1, kafka-2, kafka-3 ]
     entrypoint: [ "bash", "-c", "sleep infinity" ]
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: schema-registry
+    depends_on:
+      - kafka-1
+      - kafka-2
+      - kafka-3
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka-1:9092,PLAINTEXT://kafka-2:9092,PLAINTEXT://kafka-3:9092"
+    ports:
+      - "8081:8081"
+    networks:
+      - default
+
+
 networks:
   kafka-net:
 
@@ -71,3 +88,4 @@ volumes:
   kafka1_data:
   kafka2_data:
   kafka3_data:
+

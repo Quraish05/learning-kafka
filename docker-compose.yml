@@ -1,10 +1,12 @@
 services:
   kafka:
     image: confluentinc/cp-kafka:7.8.3
+    hostname: kafka
     container_name: kafka
     ports:
       - "9092:9092"
-
+    networks:
+      - default
     environment:
       KAFKA_KRAFT_MODE: true
 
@@ -15,10 +17,11 @@ services:
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:19092
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
 
     volumes:
@@ -29,6 +32,32 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: schema-registry
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: "http://0.0.0.0:8081"
+      # Bootstrap servers with protocol prefix (required format)
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: "PLAINTEXT://kafka:19092"
+      # Additional config to ensure proper connection
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC: "_schemas"
+      SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: "1"
+    ports:
+      - "8081:8081"
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/subjects"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
     #  Observability 
   otel-collector:
     image: otel/opentelemetry-collector:0.113.0
