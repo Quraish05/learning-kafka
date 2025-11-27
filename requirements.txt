@@ -7,3 +7,4 @@ opentelemetry-exporter-otlp==1.27.0
 opentelemetry-instrumentation-fastapi==0.48b0
 opentelemetry-instrumentation-logging==0.48b0
 opentelemetry-instrumentation-requests==0.48b0
+faust-streaming==0.11.1
