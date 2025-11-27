@@ -4,11 +4,11 @@ A simple Apache Kafka-based order processing system demonstrating producer-consu
 
 ## 📋 Project Overview
 
-This project implements a basic **event-driven architecture** using Apache Kafka to handle order processing. It consists of three main components:
+This project is a comprehensive learning resource for Apache Kafka, progressing from basic producer-consumer patterns to advanced microservices architecture with distributed tracing. It demonstrates real-world Kafka implementations through hands-on chapters.
 
-1. **Kafka Broker** (Docker container)
-2. **Order Producer** (`producer.py`) - Creates and sends orders
-3. **Order Tracker** (`tracker.py`) - Consumes and processes orders
+**Initial Setup**: Basic event-driven architecture with Kafka broker, producer, and consumer components.
+
+**Advanced Features**: Multi-broker clusters, high-throughput producers, consumer groups, stream processing, schema registry, and observability with OpenTelemetry.
 
 ## 🏗️ Architecture Flow
 
@@ -157,16 +157,166 @@ Consumer is running & subscribed to orders topic
 Message received: burger 5 from john
 ```
 
-## 🚀 Next Steps
+## 📚 Chapter Guide
 
-To extend this project:
-1. Add multiple consumers for load balancing
-2. Implement error handling and retries
-3. Add message schemas (Avro/Protobuf)
-4. Create a web interface for order management
-5. Add database persistence for order history
-6. Implement authentication and authorization
+This project is organized into progressive chapters, each building upon previous concepts. Detailed documentation for each chapter is available in the `docs/` directory.
+
+### 🧩 Chapter 1 – Initial Kafka Consumer-Producer Setup
+
+**Goal**: Establish foundational Kafka producer-consumer system with management tools.
+
+**What You'll Learn**:
+- Producer-consumer basics with `kafka-python` library
+- Environment-based configuration
+- Consumer groups and offset tracking
+- Management scripts for topics and consumer groups
+
+**Key Files**:
+- `producer.py` - Refactored producer with JSON serialization
+- `consumer.py` - Consumer with CLI arguments and offset tracking
+- `scripts/create_topic.sh` - Topic creation script
+- `scripts/describe_topic.sh` - Topic inspection tool
+- `scripts/describe_group.sh` - Consumer group monitoring
+- `scripts/list_groups.sh` - List all consumer groups
+
+**Key Concepts**: Producer, Consumer, Topic, Consumer Group, Offset, Partition, Bootstrap Server
+
+**Documentation**: See `docs/chp1.md` for detailed explanations.
 
 ---
 
-*This project demonstrates the fundamental concepts of Apache Kafka in a simple, easy-to-understand format.*
+### 🏗️ Chapter 2 – Multi-Broker Kafka Cluster with Partitioning and Failover
+
+**Goal**: Set up production-ready multi-broker cluster with replication and fault tolerance.
+
+**What You'll Learn**:
+- 3-broker Kafka cluster setup using KRaft mode (no Zookeeper)
+- Replication and high availability (replication factor 3, min ISR 2)
+- Service-specific topic organization
+- Broker failure handling and automatic failover
+- Consumer group rebalancing during failures
+
+**Key Files**:
+- `docker-compose.cluster.yml` - Multi-broker cluster configuration
+- Service-specific consumers (kitchen, delivery, payments)
+- Health check scripts
+- Failover demonstration scripts
+
+**Key Concepts**: KRaft Mode, Replication Factor, ISR (In-Sync Replicas), Leader Election, Partition Leadership, Consumer Group Rebalancing
+
+**Documentation**: See `docs/chp2.md` for detailed explanations.
+
+---
+
+### ⚡ Chapter 3 – Multi-Partition Topics & Consumer Groups
+
+**Goal**: Learn to scale Kafka throughput with multiple partitions and observe consumer group behavior.
+
+**What You'll Learn**:
+- Creating multi-partition topics (6 partitions)
+- High-throughput producer configuration (batching, compression)
+- Consumer group partition assignment
+- Rebalancing when consumers join/leave
+- Monitoring lag and partition distribution
+
+**Key Files**:
+- `src/producers/fast_order_producer.py` - Tuned producer with batching and compression
+- `src/consumers/group_order_consumer.py` - Consumer with rebalance listener
+- `src/consumers/kitchen_worker.py` - Domain-flavored consumer example
+
+**Key Concepts**: Partitions, Throughput Tuning, Consumer Groups, Rebalancing, Lag Monitoring, Batching, Compression
+
+**Documentation**: See `docs/chp3.md` for detailed explanations and code walkthroughs.
+
+---
+
+### 🔍 Chapter 4 – FastAPI Microservice with OpenTelemetry Distributed Tracing
+
+**Goal**: Build microservices with Kafka and implement end-to-end observability.
+
+**What You'll Learn**:
+- FastAPI service that produces to Kafka
+- Kafka consumer worker service
+- OpenTelemetry distributed tracing setup
+- W3C traceparent header propagation through Kafka
+- Jaeger for trace visualization
+- End-to-end trace correlation across services
+
+**Key Files**:
+- `src/services/orders_api.py` - FastAPI service with Kafka producer
+- `src/services/orders_worker.py` - Kafka consumer worker
+- `src/otel.py` - OpenTelemetry setup module
+- `scripts/otel-collector-config.yaml` - OTel collector configuration
+- `docker-compose.yml` - Updated with OTel Collector and Jaeger
+
+**Key Concepts**: Distributed Tracing, OpenTelemetry, W3C Traceparent, Context Propagation, Span Kinds, Microservices Observability
+
+**Documentation**: See `docs/chp4.md` for detailed explanations and code walkthroughs.
+
+---
+
+### 🔌 Chapter 5 – Kafka Connect Integration
+
+**Goal**: Integrate Kafka Connect for data pipeline operations.
+
+**What You'll Learn**:
+- Kafka Connect setup and configuration
+- File source and sink connectors
+- Connector management via REST API
+- Data pipeline patterns
+- Reading from and writing to files via Kafka
+
+**Key Files**:
+- `connect/connector-file-source.json` - File source connector configuration
+- `connect/connector-file-sink.json` - File sink connector configuration
+- `scripts/connect-register.sh` - Connector registration script
+- `scripts/connect-status.sh` - Connector status monitoring
+- `docker-compose.yml` - Kafka Connect service configuration
+
+**Key Concepts**: Kafka Connect, Connectors, Source Connectors, Sink Connectors, Data Pipelines, Connector REST API
+
+**Use Cases**: File-based ETL, database synchronization, log aggregation, data lake ingestion
+
+---
+
+### 📊 Chapter 6 – Kafka Streams with Schema Registry
+
+**Goal**: Implement stream processing with Avro schemas and Schema Registry for type-safe data pipelines.
+
+**What You'll Learn**:
+- Faust stream processing framework
+- Avro schema definition and serialization
+- Schema Registry integration and schema evolution
+- Stream transformations and aggregations
+- Stateful stream processing with tables
+- Building real-time statistics services
+
+**Key Files**:
+- `streams/orders_stream_app.py` - JSON-based stream processing application
+- `streams/orders_stream_app_avro.py` - Avro-based stream processing with Schema Registry
+- `src/services/fast_stats_user.py` - FastAPI service consuming JSON stream results
+- `src/services/fast_stats_user_avro.py` - FastAPI service consuming Avro stream results
+- `src/services/order_models.py` - Shared Pydantic models
+- `src/producers/produce_stream_demo.py` - Demo producer for stream testing
+- `docker-compose.yml` - Schema Registry service configuration
+
+**Key Concepts**: Stream Processing, Faust, Avro, Schema Registry, Stream Transformations, Stateful Processing, Stream Tables, Schema Evolution
+
+**Use Cases**: Real-time analytics, event-driven aggregations, stream-to-stream joins, windowed computations
+
+---
+
+## 🚀 Next Steps
+
+To extend this project:
+1. Add more stream processing examples
+2. Implement error handling and dead letter topics
+3. Add authentication and authorization (SASL/SSL)
+4. Create a web interface for order management
+5. Add database persistence for order history
+6. Implement more complex stream processing patterns
+7. Add metrics collection (Prometheus integration)
+
+---
+
+*This project demonstrates Apache Kafka concepts from basics to advanced microservices architecture, with detailed documentation and code explanations in each chapter.*
